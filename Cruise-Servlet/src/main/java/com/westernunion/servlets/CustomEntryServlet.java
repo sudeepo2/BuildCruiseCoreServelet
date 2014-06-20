@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.StringTokenizer;
 
 import javax.servlet.ServletException;
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpSession;
 
 import org.apache.felix.scr.annotations.Component;
@@ -13,6 +14,8 @@ import org.apache.felix.scr.annotations.Service;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.api.servlets.SlingAllMethodsServlet;
+import org.apache.sling.commons.json.JSONException;
+import org.apache.sling.commons.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,20 +56,24 @@ public class CustomEntryServlet extends SlingAllMethodsServlet {
 	 */
 	@Override
 	protected void doGet(final SlingHttpServletRequest servletRequest, final SlingHttpServletResponse servletResponse) throws ServletException,
-			IOException {
-
+			IOException{
+		
+		JSONObject jsonRequest=new JSONObject();
+		
 		boolean isErrorPage = false;
 		final String languageCode = servletRequest
 				.getParameter(WebConstants.LANGUAGE);
 		final String countryCode = servletRequest
 				.getParameter(WebConstants.COUNTRY);
-
+		
+		
 		// Get wudata from parameters.
 		final String wuData = CryptoUtil.decodeAsBase64(servletRequest
 				.getParameter(WebConstants.WUDATA));
 		if (wuData == null) {
 			isErrorPage = true;
 		} else {
+			try{
 			StringTokenizer st = new StringTokenizer(wuData,
 					WebAppConstants.COMMA);
 			HttpSession session = servletRequest.getSession();
@@ -84,32 +91,32 @@ public class CustomEntryServlet extends SlingAllMethodsServlet {
 						break;
 					}
 					if (substring.equals(WebAppConstants.EMP_ID)) {
-
-						session.setAttribute(WebAppConstants.EMP_ID, param);
+						
+						jsonRequest.put(WebAppConstants.EMP_ID, param);
 
 					} else if (substring.equals(WebAppConstants.TIME_STAMP)) {
 
-						session.setAttribute(WebAppConstants.TIME_STAMP, param);
-						System.out.println("TIME_STAMP=" + param);
+						jsonRequest.put(WebAppConstants.TIME_STAMP, param);
 					} else if (substring.equals(WebAppConstants.SHARED_SECRET)) {
 
-						session.setAttribute(WebAppConstants.SHARED_SECRET,
-								param);
-						System.out.println("SHARED_SECRET=" + param);
+						jsonRequest.put(WebAppConstants.SHARED_SECRET, param);
 
 					} else if (substring.equals(WebAppConstants.CLIENT_ID)) {
 
-						session.setAttribute(WebAppConstants.CLIENT_ID, param);
-						System.out.println("CLIENT_ID=" + param);
+						jsonRequest.put(WebAppConstants.CLIENT_ID, param);						
 					} else if (substring.equals(WebAppConstants.PROVIDER_ID)) {
-						session.setAttribute(WebAppConstants.PROVIDER_ID, param);
-						System.out.println("PROVIDER_ID=" + param);
+						
+						jsonRequest.put(WebAppConstants.PROVIDER_ID, param);						
 					}
 
 				}
 			}
+			
+			}catch(JSONException e){}
+			Cookie cruiseCookie=new Cookie("cruiseCookie",jsonRequest.toString());
+			servletResponse.addCookie(cruiseCookie);
 		}
-
+        
 		// Error scenario. Redirect to ERROR/LOGIN page.
 
 		org.apache.sling.api.wrappers.SlingHttpServletRequestWrapper req =
